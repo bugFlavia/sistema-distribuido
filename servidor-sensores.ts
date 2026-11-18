@@ -1,35 +1,51 @@
-import type { Buffer } from 'node:buffer';
-import * as net from 'node:net';
-import { Produto } from './produto.ts';
+import {Sensor} from './sensor';
+import {Talhao} from './talhao.ts';
+import {Conexao, type Leitura, type Lote} from './protocolo.ts';
 
-const host: string = process.env.SERVER_HOST ?? '127.0.0.1';
+const sensores: Sensor[] = [
+    new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
+    new Sensor(2, "Sensor de Temperatura", "Temperatura", "Graus Celsius", 24, 40),
+    new Sensor(3, "Sensor de Luminosidade", "Luminosidade", "Lux", 0, 100)
+];
 
-const client: net.Socket = net.createConnection({ 
-    host: host,
-    port: 3000
-});
+const talhoes: Talhao[] = [
+    new Talhao(1, "Talhão 1", sensores)
+]
 
-client.on('connect', () => {
-    console.log(`Conectado ao servidor ${host}:3000`);
-});
+const conexao = new Conexao('localhost', 3000);
+const socket = conexao.conectar();
 
-client.on('data', (mensagem: Buffer) => {
-    console.log(`Mensagem recebida do servidor: ${mensagem.toString('utf8')}`);
-});
+let fila:Leitura[] = [];
 
-client.on('error', (erro: Error) => {
-    console.error(`Erro de conexão: ${erro.message}`);
-});
+setInterval(() => {
+    for (const talhao of talhoes) {
+        for (const sensor of talhao.sensores) {
+            fila.push({
+                talhaoId: talhao.id,
+                sensorId: sensor.id,
+                tipo: sensor.tipo,
+                unidade: sensor.unidade,
+                valores: [sensor.lerValor()]
+            });
+        }
+    }
+}, 1000);
 
-const produto = new Produto("Macbook Pro", 25000);
-const titulo = produto.getTitulo();
-const preco = produto.getPreco();
+setInterval(() => {
+    if (fila.length > 0) {
+        const leituras = [...fila];
+        fila = [];
+        for (const leitura of leituras) {
+            const mensagem = {
+                talhaoId: leitura.talhaoId,
+                sensorId: leitura.sensorId,
+                tipo: leitura.tipo,
+                unidade: leitura.unidade,
+                valores: leitura.valores
+            };
+            conexao.enviar(mensagem);
+        }
+    }
+}, 5000);
 
-client.write(JSON.stringify({ titulo, preco }), () => {
-    client.end();
-});
-
-client.on('close', () => {
-    console.log('Conexão encerrada pelo servidor');
-});
 
