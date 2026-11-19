@@ -2,6 +2,7 @@ import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
 
 export interface Leitura {
+    talhaoId: number;
     sensorId: number;
     tipo: string;
     unidade: string;
@@ -28,14 +29,14 @@ export interface MediaTalhao {
 }
 
 
-export type Mensagem = Leitura | Lote | MediaSensor | MediaTalhao | MediaLote;
+export type Mensagem = Leitura | Lote | MediaSensor | MediaTalhao;
 
 export function enviar(socket: net.Socket, mensagem: Mensagem): void {
-    socket.write(JSON.stringify(mensagem));
+    socket.write(JSON.stringify(mensagem) + '\n');
 }
 
-export function receber(mensagem: Buffer): Mensagem {
-    return JSON.parse(mensagem.toString('utf8'));
+export function receber(mensagem: string): Mensagem {
+    return JSON.parse(mensagem);
 }
 
 export class Conexao {
@@ -56,7 +57,7 @@ export class Conexao {
         }
     }
 
-    conectar(): void {
+    conectar(aoReceber?: (mensagem: Mensagem) => void): void {
         const socket: net.Socket = net.createConnection({ 
             host: this.endereco,
             port: this.porta
@@ -66,9 +67,13 @@ export class Conexao {
             console.log(`Conectado ao servidor ${this.endereco}:${this.porta}`);
         });
 
-        socket.on('data', (mensagem: Buffer) => {
-            const mensagemRecebida: Mensagem = receber(mensagem);
-            console.log(`Mensagem recebida do servidor: ${JSON.stringify(mensagemRecebida)}`);
+        socket.on('data', (dados: Buffer) => {
+            for (const linha of dados.toString().split('\n')) {
+                if (!linha) continue;
+                const mensagemRecebida: Mensagem = receber(linha);
+                console.log(`Mensagem recebida do servidor: ${JSON.stringify(mensagemRecebida)}`);
+                if (aoReceber) aoReceber(mensagemRecebida);
+            }
         });
 
         socket.on('error', (erro: Error) => {
@@ -76,10 +81,6 @@ export class Conexao {
         }); 
 
         this.socket = socket;
-    }
-
-    static receber(mensagem: Buffer): Mensagem {
-        return receber(mensagem);
     }
 
 }

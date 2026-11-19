@@ -1,6 +1,6 @@
 import * as net from "node:net";
-import { Conexao, enviar, type Mensagem, type MediaSensor, type MediaTalhao, type Leitura, type Lote } from './protocolo.ts';
-import {Buffer} from 'node:buffer';
+import type { Buffer } from 'node:buffer';
+import { Conexao, enviar, type Mensagem, type MediaSensor, type MediaTalhao, type Leitura, type Lote, receber } from './protocolo.ts';
 
 const portaServico = 3001;
 
@@ -29,29 +29,31 @@ function calcularMediaSensores(lotes: Lote[]): MediaSensor[] {
 }
 
 const server: net.Server = net.createServer((socket: net.Socket) => {
-    socket.on('data', (mensagem: Buffer) => {
-        const mensagemRecebida: Mensagem = Conexao.receber(mensagem);
-        if (!('leituras' in mensagemRecebida)) return;
-        const loteRecebido: Lote = mensagemRecebida;
-        console.log('Mensagem recebida:', JSON.stringify(mensagemRecebida));
-        const medias = calcularMediaSensores([loteRecebido]);
-        const mediasCalculadas: MediaSensor[] = medias.map(media => {
-            return {
-                sensorId: media.sensorId,
-                tipo: media.tipo,
-                unidade: media.unidade,
-                media: media.media
+    socket.on('data', (dados: Buffer) => {
+        for (const linha of dados.toString().split('\n')) {
+            if (!linha) continue;
+            const mensagemRecebida: Mensagem = receber(linha);
+            if (!('leituras' in mensagemRecebida)) continue;
+            const loteRecebido: Lote = mensagemRecebida;
+            console.log('Mensagem recebida:', JSON.stringify(mensagemRecebida));
+            const medias = calcularMediaSensores([loteRecebido]);
+            const mediasCalculadas: MediaSensor[] = medias.map(media => {
+                return {
+                    sensorId: media.sensorId,
+                    tipo: media.tipo,
+                    unidade: media.unidade,
+                    media: media.media
+                };
+            });
+            const mediaTalhao: MediaTalhao = {
+                talhaoId: loteRecebido.talhaoId,
+                mediasSensores: mediasCalculadas
             };
-        });
-        const mediaTalhao: MediaTalhao = {
-            talhaoId: loteRecebido.talhaoId,
-            mediasSensores: mediasCalculadas
-        };
-        console.log('Médias calculadas e enviadas para o gateway:', JSON.stringify(medias));
-        enviar(socket, mediaTalhao);
-    })
 
-    
+            console.log('Médias calculadas e enviadas para o gateway:', JSON.stringify(medias));
+            enviar(socket, mediaTalhao);
+        }
+    })
 
     socket.on('close', () =>  {
         console.log(`Conexão encerrada: ${socket.remoteAddress}:${socket.remotePort}`);
