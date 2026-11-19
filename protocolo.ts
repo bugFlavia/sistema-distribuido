@@ -2,7 +2,6 @@ import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
 
 export interface Leitura {
-    talhaoId: number;
     sensorId: number;
     tipo: string;
     unidade: string;
@@ -28,10 +27,6 @@ export interface MediaTalhao {
     mediasSensores: MediaSensor[];
 }
 
-export interface MediaLote {
-    loteId: number;
-    mediasTalhoes: MediaTalhao[];
-}
 
 export type Mensagem = Leitura | Lote | MediaSensor | MediaTalhao | MediaLote;
 
@@ -61,7 +56,7 @@ export class Conexao {
         }
     }
 
-    conectar(): net.Socket {
+    conectar(): void {
         const socket: net.Socket = net.createConnection({ 
             host: this.endereco,
             port: this.porta
@@ -80,7 +75,11 @@ export class Conexao {
             console.error(`Erro de conexão: ${erro.message}`);
         }); 
 
-        return socket;
+        this.socket = socket;
+    }
+
+    static receber(mensagem: Buffer): Mensagem {
+        return receber(mensagem);
     }
 
 }

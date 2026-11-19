@@ -1,4 +1,4 @@
-import { Sensor } from "./sensor.js";
+import { Sensor } from "./sensor.ts";
 class Talhao {
     id: number;
     nome: string;

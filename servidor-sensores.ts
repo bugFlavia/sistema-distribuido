@@ -1,6 +1,9 @@
-import {Sensor} from './sensor';
+import {Sensor} from './sensor.ts';
 import {Talhao} from './talhao.ts';
 import {Conexao, type Leitura, type Lote} from './protocolo.ts';
+
+const gateway = 'localhost';
+const porta = 3000;
 
 const sensores: Sensor[] = [
     new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
@@ -12,40 +15,38 @@ const talhoes: Talhao[] = [
     new Talhao(1, "Talhão 1", sensores)
 ]
 
-const conexao = new Conexao('localhost', 3000);
-const socket = conexao.conectar();
+const conexao = new Conexao(gateway, porta);
+conexao.conectar();
 
 let fila:Leitura[] = [];
+let lote: Lote;
+let contador = 0;
 
 setInterval(() => {
     for (const talhao of talhoes) {
-        for (const sensor of talhao.sensores) {
+        talhao.sensores.map(sensor => {
             fila.push({
-                talhaoId: talhao.id,
                 sensorId: sensor.id,
                 tipo: sensor.tipo,
                 unidade: sensor.unidade,
                 valores: [sensor.lerValor()]
             });
-        }
+        });
     }
 }, 1000);
 
 setInterval(() => {
     if (fila.length > 0) {
-        const leituras = [...fila];
-        fila = [];
-        for (const leitura of leituras) {
-            const mensagem = {
-                talhaoId: leitura.talhaoId,
-                sensorId: leitura.sensorId,
-                tipo: leitura.tipo,
-                unidade: leitura.unidade,
-                valores: leitura.valores
+        for (const talhao of talhoes) {
+            contador++;
+            lote = {
+                id: contador,
+                talhaoId: talhao.id,
+                leituras: fila,
+                timestamp: new Date().toISOString()
             };
-            conexao.enviar(mensagem);
+            conexao.enviar(lote);
         }
+        fila = [];
     }
 }, 5000);
-
-
