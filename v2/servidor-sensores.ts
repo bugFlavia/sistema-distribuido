@@ -5,23 +5,30 @@ import * as net from 'node:net';
 import { Buffer } from 'node:buffer';
 
 const porta: number = 3000;
-const servico: string = 'localhost';
+const endereco: string = 'localhost';
 
-const sensores: Sensor[] = [
+const sensores_talhao_1: Sensor[] = [
     new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
     new Sensor(2, "Sensor de Temperatura", "Temperatura", "Graus Celsius", 24, 40),
     new Sensor(3, "Sensor de Luminosidade", "Luminosidade", "Lux", 0, 100)
 ];
 
-const sensores_novos: Sensor[] = [
+const sensores_talhao_2: Sensor[] = [
+    new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
+    new Sensor(2, "Sensor de Temperatura", "Temperatura", "Graus Celsius", 24, 40),
+    new Sensor(3, "Sensor de Luminosidade", "Luminosidade", "Lux", 0, 100)
+];
+
+const sensores_talhao_3: Sensor[] = [
     new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
     new Sensor(2, "Sensor de Temperatura", "Temperatura", "Graus Celsius", 24, 40),
     new Sensor(3, "Sensor de Luminosidade", "Luminosidade", "Lux", 0, 100)
 ];
 
 const talhoes: Talhao[] = [
-    new Talhao(1, "Talhão 1", sensores),
-    new Talhao(2, "Talhão 2", sensores_novos)
+    new Talhao(1, "Talhão 1", sensores_talhao_1),
+    new Talhao(2, "Talhão 2", sensores_talhao_2),
+    new Talhao(3, "Talhão 3", sensores_talhao_3)
 ]
 
 const filas = new Map<number, Leitura[]>();
@@ -67,6 +74,6 @@ const server: net.Server = net.createServer((socket: net.Socket) => {
     })
 });
 
-server.listen(porta, servico, () => {
-    console.log(`Servidor escutando em ${servico}:${porta}`);
+server.listen(porta, endereco, () => {
+    console.log(`Servidor escutando em ${endereco}:${porta}`);
 });
