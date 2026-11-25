@@ -1,8 +1,14 @@
 import * as net from "node:net";
 import type { Buffer } from 'node:buffer';
 import { Conexao, enviar, type Mensagem, type MediaSensor, type MediaTalhao, type Leitura, type Lote, receber } from './protocolo.ts';
+import grpc, { Server, ServerCredentials, } from '@grpc/grpc-js';
+import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
+import { loadSync } from '@grpc/proto-loader';
 
 const portaServico = 3002;
+
+const mediaDef = loadSync('media.proto')
+const mediaProto = (grpc.loadPackageDefinition)(mediaDef).media as any;
 
 function calcularMediaSensores(lotes: Lote[]): MediaSensor[] {
     const medias: MediaSensor[] = [];
@@ -28,39 +34,28 @@ function calcularMediaSensores(lotes: Lote[]): MediaSensor[] {
     return medias;
 }
 
-const server: net.Server = net.createServer((socket: net.Socket) => {
-    socket.on('data', (dados: Buffer) => {
-        for (const linha of dados.toString().split('\n')) {
-            if (!linha) continue;
-            const mensagemRecebida: Mensagem = receber(linha);
-            if (!('leituras' in mensagemRecebida)) continue;
-            const loteRecebido: Lote = mensagemRecebida;
-            console.log('Mensagem recebida:', JSON.stringify(mensagemRecebida));
-            const medias = calcularMediaSensores([loteRecebido]);
-            const mediasCalculadas: MediaSensor[] = medias.map(media => {
-                return {
-                    sensorId: media.sensorId,
-                    tipo: media.tipo,
-                    unidade: media.unidade,
-                    media: media.media
-                };
-            });
-            const mediaTalhao: MediaTalhao = {
-                talhaoId: loteRecebido.talhaoId,
-                mediasSensores: mediasCalculadas
-            };
+const medias : MediaTalhao[] = [];
 
-            console.log('Médias calculadas e enviadas para o gateway:', JSON.stringify(medias));
-            enviar(socket, mediaTalhao);
-        }
-    })
 
-    socket.on('close', () =>  {
-        console.log(`Conexão encerrada: ${socket.remoteAddress}:${socket.remotePort}`);
-    }); 
+
+const server = new Server();
+server.addService(mediaProto.MediaService.service, {
+    calcularMedia: (call: ServerUnaryCall<Lote, MediaTalhao>, callback: sendUnaryData<MediaTalhao>) => {
+        const lote = call.request;
+        const mediaTalhao: MediaTalhao = {
+            talhaoId: lote.talhaoId,
+            mediasSensores: calcularMediaSensores([lote])
+        };
+        callback(null, mediaTalhao);
+    }
+
 });
 
-server.listen(portaServico, () => {
-    console.log(`Servidor de serviço rodando na porta ${portaServico}`);
+server.bindAsync('0.0.0.0:50051', ServerCredentials.createInsecure(), (err, port) => {
+    if (err) {
+        console.error('Falha ao subir o servidor:', err.message);
+        process.exit(1);
+    }
+    console.log(`Servidor rodando na porta ${port}`);
 });
 
