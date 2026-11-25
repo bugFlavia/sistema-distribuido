@@ -1,6 +1,8 @@
 import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
-import {Conexao, enviar, type Mensagem, type MediaSensor, receber, type Pedido} from './protocolo.ts';
+import {Conexao, enviar, type Mensagem, type MediaSensor, receber, type Pedido, type MediaTalhao} from './protocolo.ts';
+import grpc from '@grpc/grpc-js';
+import { loadSync } from '@grpc/proto-loader';
 
 const porta:number = 3001;
 const servico: string = 'localhost';
@@ -10,17 +12,24 @@ const portaCliente: number = 3003;
 
 const medias: Mensagem[] = [];
 
-const conexaoServico = new Conexao(servico, portaServico)
-conexaoServico.conectar((mensagem: Mensagem) => {
-    medias.push(mensagem);
-});
+const mediaDef = loadSync('media.proto')
+const mediaProto = (grpc.loadPackageDefinition)(mediaDef).media as any;
+
+const client = new mediaProto.MediaService(servico + ':' + portaServico, (grpc.credentials).createInsecure());
 
 const conexaoServivorSensores = new Conexao(servico, portaServidorSensores)
 conexaoServivorSensores.conectar((mensagem: Mensagem) => {
     if(!('leituras' in mensagem)) return;
     console.log(`Mensagem recebida do servidor de sensores: ${JSON.stringify(mensagem)}`);
     console.log(`Encaminhando mensagem para o serviço em ${servico}:${portaServico}`);
-    conexaoServico.enviar(mensagem);
+    client.calcularMedia(mensagem, (err: grpc.ServiceError | null, response: MediaTalhao) => {
+        if (err) {
+            console.error(`Erro ao calcular média: ${err.message}`);
+            return;
+        }
+        console.log(`Média calculada recebida do serviço: ${JSON.stringify(response)}`);
+        medias.push(response);
+    });
 });
 
 setInterval(() => {
