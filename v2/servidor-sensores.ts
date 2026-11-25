@@ -1,9 +1,11 @@
 import {Sensor} from './sensor.ts';
 import {Talhao} from './talhao.ts';
-import {Conexao, type Leitura, type Lote} from './protocolo.ts';
+import {Conexao, enviar, receber, type Leitura, type Lote, type Mensagem} from './protocolo.ts';
+import * as net from 'node:net';
+import { Buffer } from 'node:buffer';
 
-const gateway = 'localhost';
-const porta = 3000;
+const porta: number = 3000;
+const servico: string = 'localhost';
 
 const sensores: Sensor[] = [
     new Sensor(1, "Sensor de Umidade", "Umidade", "Percentagem", 30, 90),
@@ -21,9 +23,6 @@ const talhoes: Talhao[] = [
     new Talhao(1, "Talhão 1", sensores),
     new Talhao(2, "Talhão 2", sensores_novos)
 ]
-
-const conexao = new Conexao(gateway, porta);
-conexao.conectar();
 
 const filas = new Map<number, Leitura[]>();
 let contador = 0;
@@ -43,17 +42,31 @@ setInterval(() => {
     }
 }, 1000);
 
-setInterval(() => {
-    for (const [talhaoId, leituras] of filas) {
-        if (leituras.length === 0) continue;
-        contador++;
-        const lote: Lote = {
-            id: contador,
-            talhaoId,
-            leituras,
-            timestamp: new Date().toISOString()
-        };
-        conexao.enviar(lote);
-    }
-    filas.clear();
-}, 5000);
+const server: net.Server = net.createServer((socket: net.Socket) => {
+    socket.on('data', (dados: Buffer) => {
+        for (const linha of dados.toString().split('\n')) {
+            if (!linha) continue;
+            const mensagemRecebida: Mensagem = receber(linha);
+            if(!('pedido' in mensagemRecebida)) continue;
+            for (const [talhaoId, leituras] of filas) {
+                if (leituras.length === 0) continue;
+                contador++;
+                const lote: Lote = {
+                    id: contador,
+                    talhaoId,
+                    leituras,
+                    timestamp: new Date().toISOString()
+                };
+                enviar(socket, lote);
+            }
+            filas.clear();
+        }
+    });
+    socket.on('error', (err: Error) => {
+        console.error(`Erro no socket: ${err.message}`);
+    })
+});
+
+server.listen(porta, servico, () => {
+    console.log(`Servidor escutando em ${servico}:${porta}`);
+});

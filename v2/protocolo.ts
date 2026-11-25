@@ -28,8 +28,11 @@ export interface MediaTalhao {
     mediasSensores: MediaSensor[];
 }
 
+export interface Pedido{
+    pedido: string;
+}
 
-export type Mensagem = Leitura | Lote | MediaSensor | MediaTalhao;
+export type Mensagem = Leitura | Lote | MediaSensor | MediaTalhao | Pedido;
 
 export function enviar(socket: net.Socket, mensagem: Mensagem): void {
     socket.write(JSON.stringify(mensagem) + '\n');

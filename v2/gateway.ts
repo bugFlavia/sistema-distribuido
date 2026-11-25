@@ -1,11 +1,12 @@
 import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
-import {Conexao, type Mensagem, type MediaSensor, receber} from './protocolo.ts';
+import {Conexao, enviar, type Mensagem, type MediaSensor, receber, type Pedido} from './protocolo.ts';
 
-const porta:number = 3000;
+const porta:number = 3001;
 const servico: string = 'localhost';
-const portaServico: number = 3001;
-const portaCliente: number = 3002;
+const portaServidorSensores: number = 3000;
+const portaServico: number = 3002;
+const portaCliente: number = 3003;
 
 const medias: Mensagem[] = [];
 
@@ -14,23 +15,19 @@ conexaoServico.conectar((mensagem: Mensagem) => {
     medias.push(mensagem);
 });
 
-const server: net.Server = net.createServer((socket: net.Socket) => {
-
-    socket.on('data', (dados: Buffer) => {
-        for (const linha of dados.toString().split('\n')) {
-            if (!linha) continue;
-            const mensagemRecebida: Mensagem = receber(linha);
-            console.log(`Mensagem recebida: ${JSON.stringify(mensagemRecebida)}`);
-            console.log(`Encaminhando mensagem para o serviço em ${servico}:${portaServico}`);
-            conexaoServico.enviar(mensagemRecebida);
-        }
-    });
-
+const conexaoServivorSensores = new Conexao(servico, portaServidorSensores)
+conexaoServivorSensores.conectar((mensagem: Mensagem) => {
+    if(!('leituras' in mensagem)) return;
+    console.log(`Mensagem recebida do servidor de sensores: ${JSON.stringify(mensagem)}`);
+    console.log(`Encaminhando mensagem para o serviço em ${servico}:${portaServico}`);
+    conexaoServico.enviar(mensagem);
 });
 
-server.listen(porta, () => {
-    console.log(`Servidor rodando na porta ${porta}`);
-});
+setInterval(() => {
+    const pedido: Pedido = {pedido: 'leituras'};
+    console.log(`Enviando pedido de leituras para o servidor de sensores: ${JSON.stringify(pedido)}`);
+    conexaoServivorSensores.enviar(pedido);
+}, 5000);
 
 const serverCliente: net.Server = net.createServer((socket: net.Socket) => {
     console.log(`Cliente conectado: ${socket.remoteAddress}:${socket.remotePort}`);

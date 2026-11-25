@@ -2,7 +2,7 @@ import * as net from "node:net";
 import type { Buffer } from 'node:buffer';
 import { Conexao, enviar, type Mensagem, type MediaSensor, type MediaTalhao, type Leitura, type Lote, receber } from './protocolo.ts';
 
-const portaServico = 3001;
+const portaServico = 3002;
 
 function calcularMediaSensores(lotes: Lote[]): MediaSensor[] {
     const medias: MediaSensor[] = [];
