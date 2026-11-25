@@ -1,10 +1,9 @@
 import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
-import {Conexao, enviar, type Mensagem, type MediaSensor, receber, type Pedido, type MediaTalhao} from './protocolo.ts';
+import {Conexao, type Mensagem, type Pedido, type MediaTalhao} from './protocolo.ts';
 import grpc from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 
-const porta:number = 3001;
 const servico: string = 'localhost';
 const portaServidorSensores: number = 3000;
 const portaServico: number = 3002;

@@ -24,10 +24,10 @@ message MediaSensor{
     int32 sensorId = 1;
     string tipo = 2; 
     string unidade = 3; 
-    int32 media = 4;
+    double media = 4;
 }
 
 message MediaTalhao{
     int32 talhaoId = 1; 
-    repeated MediasSensor mediaSensores = 2;
+    repeated MediaSensor mediasSensores = 2;
 }

@@ -1,6 +1,6 @@
 import * as net from "node:net";
 import type { Buffer } from 'node:buffer';
-import { Conexao, enviar, type Mensagem, type MediaSensor, type MediaTalhao, type Leitura, type Lote, receber } from './protocolo.ts';
+import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.ts';
 import grpc, { Server, ServerCredentials, } from '@grpc/grpc-js';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
@@ -33,10 +33,6 @@ function calcularMediaSensores(lotes: Lote[]): MediaSensor[] {
     }
     return medias;
 }
-
-const medias : MediaTalhao[] = [];
-
-
 
 const server = new Server();
 server.addService(mediaProto.MediaService.service, {
