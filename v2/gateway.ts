@@ -1,13 +1,15 @@
 import type { Buffer } from 'node:buffer';
 import * as net from 'node:net';
-import {Conexao, type Mensagem, type Pedido, type MediaTalhao} from './protocolo.ts';
+import {Conexao, type Mensagem, type Pedido, type MediaTalhao, receber, enviar} from './protocolo.ts';
 import grpc from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 
+
+const endereco: string = 'localhost';
+const porta: number = 3001;
 const servico: string = 'localhost';
 const portaServidorSensores: number = 3000;
 const portaServico: number = 3002;
-const portaCliente: number = 3003;
 
 const medias: Mensagem[] = [];
 
@@ -37,11 +39,23 @@ setInterval(() => {
     conexaoServivorSensores.enviar(pedido);
 }, 5000);
 
-const serverCliente: net.Server = net.createServer((socket: net.Socket) => {
-    console.log(`Cliente conectado: ${socket.remoteAddress}:${socket.remotePort}`);
-    socket.end(JSON.stringify(medias) + '\n');
+const server: net.Server = net.createServer((socket: net.Socket) => {
+    socket.on('data', (dados: Buffer) => {
+        for (const linha of dados.toString().split('\n')) {
+            if (!linha) continue;
+            const mensagemRecebida: Mensagem = receber(linha);
+            if(!('pedido' in mensagemRecebida)) continue;
+            for (const media of medias) {
+                enviar(socket, media);
+            }
+            medias.length = 0; 
+        }
+    });
+    socket.on('error', (err: Error) => {
+        console.error(`Erro no socket: ${err.message}`);
+    })
 });
 
-serverCliente.listen(portaCliente, () => {
-    console.log(`Servidor de clientes rodando na porta ${portaCliente}`);
+server.listen(porta, endereco, () => {
+    console.log(`Gateway escutando em ${endereco}:${porta}`);
 });
