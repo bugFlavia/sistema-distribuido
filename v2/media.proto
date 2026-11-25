@@ -1,26 +1,33 @@
 syntax = "proto3";
-package task;
+package media;
 
-import "google/protobuf/empty.proto";
-
-service TaskService{
-    rpc FindAll(google.protobuf.Empty) returns (TaskList) {}
-    rpc FindOne(TaskRequest) returns (Task) {}
-    rpc Create(Task) returns (Task) {}
-    rpc Update(Task) returns (Task) {}
-    rpc Delete(TaskRequest) returns (google.protobuf.Empty) {}
-
+service MediaService{
+    rpc CalcularMedia(Lote) returns (MediaTalhao){}
 };
 
-message TaskRequest{
-    int32 id = 1;
+message Leitura {
+    int32 talhaoId = 1;
+    int32 sensorId = 2;
+    string tipo = 3;
+    string unidade = 4;
+    repeated double valores = 5;
 }
 
-message Task{
-    int32 id = 1;
-    string title = 2;
+message Lote{
+    int32 id = 1; 
+    int32 talhaoId = 2; 
+    repeated Leitura leituras = 3; 
+    string timestamp = 4;
 }
 
-message TaskList{
-    repeated Task tasks = 1;
+message MediaSensor{
+    int32 sensorId = 1;
+    string tipo = 2; 
+    string unidade = 3; 
+    int32 media = 4;
+}
+
+message MediaTalhao{
+    int32 talhaoId = 1; 
+    repeated MediasSensor mediaSensores = 2;
 }
