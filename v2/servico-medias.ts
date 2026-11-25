@@ -1,11 +1,11 @@
 import * as net from "node:net";
 import type { Buffer } from 'node:buffer';
-import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.ts';
+import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.js';
 import grpc, { Server, ServerCredentials, } from '@grpc/grpc-js';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 
-const portaServico = 3002;
+const portaServicoMedias = 3002;
 const servico: string = 'localhost';
 const mediaDef = loadSync('media.proto')
 const mediaProto = (grpc.loadPackageDefinition)(mediaDef).media as any;
@@ -47,7 +47,7 @@ server.addService(mediaProto.MediaService.service, {
 
 });
 
-server.bindAsync(`${servico}:${portaServico}`, ServerCredentials.createInsecure(), (err, port) => {
+server.bindAsync(`${servico}:${portaServicoMedias}`, ServerCredentials.createInsecure(), (err, port) => {
     if (err) {
         console.error('Falha ao subir o servidor:', err.message);
         process.exit(1);
