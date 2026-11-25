@@ -2,10 +2,10 @@ import * as net from 'node:net';
 import type { Buffer } from 'node:buffer';
 import {type MediaTalhao} from './protocolo.ts';
 
-const gateway = 'localhost';
-const porta = 3002;
+const servico = 'localhost';
+const porta = 3003;
 
-const socket = net.createConnection({ host: gateway, port: porta });
+const socket = net.createConnection({ host: servico, port: porta });
 
 let texto = '';
 socket.on('data', (dados: Buffer) => {

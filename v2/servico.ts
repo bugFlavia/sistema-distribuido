@@ -6,7 +6,7 @@ import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 
 const portaServico = 3002;
-
+const servico: string = 'localhost';
 const mediaDef = loadSync('media.proto')
 const mediaProto = (grpc.loadPackageDefinition)(mediaDef).media as any;
 
@@ -51,7 +51,7 @@ server.addService(mediaProto.MediaService.service, {
 
 });
 
-server.bindAsync('0.0.0.0:50051', ServerCredentials.createInsecure(), (err, port) => {
+server.bindAsync(`${servico}:${portaServico}`, ServerCredentials.createInsecure(), (err, port) => {
     if (err) {
         console.error('Falha ao subir o servidor:', err.message);
         process.exit(1);
