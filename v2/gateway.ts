@@ -4,7 +4,6 @@ import {Conexao, type Mensagem, type Pedido, type MediaTalhao, receber, enviar} 
 import grpc from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
 
-
 const endereco: string = 'localhost';
 const porta: number = 3001;
 const servico: string = 'localhost';

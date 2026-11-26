@@ -1,6 +1,4 @@
-import * as net from "node:net";
-import type { Buffer } from 'node:buffer';
-import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.js';
+import { type Anomalia, type Analise, type MediaTalhao } from './protocolo.ts';
 import grpc, { Server, ServerCredentials, } from '@grpc/grpc-js';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';
@@ -10,27 +8,23 @@ const servico: string = 'localhost';
 const anomaliasDef = loadSync('anomalias.proto')
 const anomaliasProto = (grpc.loadPackageDefinition)(anomaliasDef).anomalias as any;
 
-function detectarAnomalias(lotes: Lote[]): MediaSensor[] {
-    const anomalias: MediaSensor[] = [];
-    const sensoresMap: { [key: number]: { soma: number; count: number; tipo: string; unidade: string } } = {};
-    for (const lote of lotes) {
-        for (const leitura of lote.leituras) {
-            if (!sensoresMap[leitura.sensorId]) {
-                sensoresMap[leitura.sensorId] = { soma: 0, count: 0, tipo: leitura.tipo, unidade: leitura.unidade };
-            }
-            sensoresMap[leitura.sensorId]!.soma += leitura.valores.reduce((acc, val) => acc + val, 0);
-            sensoresMap[leitura.sensorId]!.count++;
-        }
-    }
-    for (const sensorId in sensoresMap) {
-        const { soma, count, tipo, unidade } = sensoresMap[sensorId]!;
-        const media = soma / count;
-        if (media < 10 || media > 90) { 
+const limites: { [tipo: string]: { min: number; max: number } } = {
+    'Umidade': { min: 50, max: 70 },
+    'Temperatura': { min: 29, max: 35 },
+    'Luminosidade': { min: 35, max: 65 }
+};
+
+function detectarAnomalias(mediaTalhao: MediaTalhao): Anomalia[] {
+    const anomalias: Anomalia[] = [];
+    for (const mediaSensor of mediaTalhao.mediasSensores ?? []) {
+        const limite = limites[mediaSensor.tipo];
+        if (!limite) continue;
+        if (mediaSensor.media < limite.min || mediaSensor.media > limite.max) {
             anomalias.push({
-                sensorId: parseInt(sensorId),
-                tipo,
-                unidade,
-                media
+                sensorId: mediaSensor.sensorId,
+                tipo: mediaSensor.tipo,
+                unidade: mediaSensor.unidade,
+                media: mediaSensor.media
             });
         }
     }
@@ -39,16 +33,21 @@ function detectarAnomalias(lotes: Lote[]): MediaSensor[] {
 
 const server = new Server();
 server.addService(anomaliasProto.AnomaliasService.service, {
-    detectarAnomalias: (call: ServerUnaryCall<Lote, MediaTalhao>, callback: sendUnaryData<MediaTalhao>) => {
-        const lote = call.request;
-        const mediaTalhao: MediaTalhao = {
-            talhaoId: lote.talhaoId,
-            mediasSensores: detectarAnomalias([lote])
+    calcularAnomalia: (call: ServerUnaryCall<MediaTalhao, Analise>, callback: sendUnaryData<Analise>) => {
+        const mediaTalhao = call.request;
+        const analise: Analise = {
+            talhaoId: mediaTalhao.talhaoId,
+            anomalias: detectarAnomalias(mediaTalhao)
         };
-        callback(null, mediaTalhao);
+        callback(null, analise);
     }
 
 });
 
-
 server.bindAsync(`${servico}:${portaServicoAnomalias}`, ServerCredentials.createInsecure(), (err, port) => {
+    if (err) {
+        console.error('Falha ao subir o servidor:', err.message);
+        process.exit(1);
+    }
+    console.log(`Servidor rodando na porta ${port}`);
+});

@@ -1,6 +1,6 @@
 import * as net from "node:net";
 import type { Buffer } from 'node:buffer';
-import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.js';
+import { type MediaSensor, type MediaTalhao, type Lote } from './protocolo.ts';
 import grpc, { Server, ServerCredentials, } from '@grpc/grpc-js';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import { loadSync } from '@grpc/proto-loader';

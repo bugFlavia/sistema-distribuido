@@ -1,8 +1,8 @@
 syntax = "proto3";
 package anomalias;
 
-service AnomaliaService{
-    rpc CalcularAnomalia(MediaSensor) returns (number){}
+service AnomaliasService{
+    rpc CalcularAnomalia(MediaTalhao) returns (Analise){}
 };
 
 message MediaSensor {
@@ -10,4 +10,21 @@ message MediaSensor {
     string tipo = 2;
     string unidade = 3;
     double media = 4;
+}
+
+message MediaTalhao {
+    int32 talhaoId = 1;
+    repeated MediaSensor mediasSensores = 2;
+}
+
+message Anomalia {
+    int32 sensorId = 1;
+    string tipo = 2;
+    string unidade = 3;
+    double media = 4;
+}
+
+message Analise {
+    int32 talhaoId = 1;
+    repeated Anomalia anomalias = 2;
 }
