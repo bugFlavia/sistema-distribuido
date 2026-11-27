@@ -82,8 +82,11 @@ export class Conexao {
             console.log(`Conectado ao servidor ${this.endereco}:${this.porta}`);
         });
 
+        let resto = '';
         socket.on('data', (dados: Buffer) => {
-            for (const linha of dados.toString().split('\n')) {
+            const linhas = (resto + dados.toString()).split('\n');
+            resto = linhas.pop() ?? '';
+            for (const linha of linhas) {
                 if (!linha) continue;
                 const mensagemRecebida: Mensagem = receber(linha);
                 console.log(`Mensagem recebida do servidor: ${JSON.stringify(mensagemRecebida)}`);

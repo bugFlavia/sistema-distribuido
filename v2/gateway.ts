@@ -39,8 +39,11 @@ setInterval(() => {
 }, 5000);
 
 const server: net.Server = net.createServer((socket: net.Socket) => {
+    let resto = '';
     socket.on('data', (dados: Buffer) => {
-        for (const linha of dados.toString().split('\n')) {
+        const linhas = (resto + dados.toString()).split('\n');
+        resto = linhas.pop() ?? '';
+        for (const linha of linhas) {
             if (!linha) continue;
             const mensagemRecebida: Mensagem = receber(linha);
             if(!('pedido' in mensagemRecebida)) continue;
